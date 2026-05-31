@@ -1,0 +1,63 @@
+# lean-data-kit/docker-compose.yml
+version: '3.8'
+
+services:
+  # Standalone single-node Milvus container with embedded etcd & local storage (highly RAM optimized)
+  milvus-standalone:
+    container_name: milvus-standalone
+    image: milvusdb/milvus:v2.3.15
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_USE_EMBED: "true"
+      ETCD_DATA_DIR: "/var/lib/milvus/etcd"
+      COMMON_STORAGETYPE: "local"
+    volumes:
+      - milvus_data:/var/lib/milvus
+    ports:
+      - "19530:19530"  # Milvus gRPC API Port
+      - "9091:9091"    # Milvus HTTP Management Port
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    restart: always
+
+  # FastAPI High-Performance Data Processing API Service
+  api:
+    container_name: lean-data-api
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    ports:
+      - "8000:8000"  # Exposed API endpoint
+    environment:
+      - MILVUS_HOST=milvus-standalone
+      - MILVUS_PORT=19530
+      - DUCKDB_PATH=/app/data/data.duckdb
+    volumes:
+      - duckdb_data:/app/data
+    depends_on:
+      milvus-standalone:
+        condition: service_healthy
+    restart: always
+
+  # Attu - Beautiful web-based administration GUI for Milvus Vector Database
+  attu:
+    container_name: milvus-attu
+    image: zilliz/attu:v2.3.10
+    environment:
+      - MILVUS_URL=milvus-standalone:19530
+    ports:
+      - "3000:80"  # Exposed Web UI console on port 3000
+    depends_on:
+      milvus-standalone:
+        condition: service_healthy
+    restart: always
+
+
+volumes:
+  milvus_data:
+    driver: local
+  duckdb_data:
+    driver: local

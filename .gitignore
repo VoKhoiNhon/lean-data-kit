@@ -1,0 +1,26 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Databases & local state
+*.duckdb
+*.duckdb.wal
+test_run.duckdb
+sample_test_data.csv
+
+# Environments
+.env
+venv/
+ENV/
+env/
+.venv/
+
+# Docker local data volumes
+milvus_data/
+duckdb_data/
+
+# IDE files
+.vscode/
+.idea/
+.DS_Store
